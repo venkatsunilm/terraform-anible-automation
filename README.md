@@ -1,138 +1,135 @@
-# Cloud Environment Provisioning with Terraform on CSC OpenStack
+---
 
-This project demonstrates how to provision a cloud environment using Terraform with CSC’s OpenStack `cPouta` cloud service. The setup includes multiple virtual machines with specific networking and security configurations.
+# **Cloud Environment Provisioning and Configuration**
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Environment Overview](#environment-overview)
-- [Prerequisites](#prerequisites)
-- [Setup Instructions](#setup-instructions)
-  - [1. Install Terraform](#1-install-terraform)
-  - [2. Configure OpenStack Provider](#2-configure-openstack-provider)
-  - [3. Create Security Groups](#3-create-security-groups)
-  - [4. Define Virtual Machines](#4-define-virtual-machines)
-  - [5. Apply the Configuration](#5-apply-the-configuration)
-  - [6. Generate Graph of Resources](#6-generate-graph-of-resources)
-- [Commands Summary](#commands-summary)
+This repository contains two sub-projects for automating the provisioning and configuration of a cloud environment:
 
-## Introduction
-This Terraform project automates the setup of a cloud environment using CSC’s OpenStack infrastructure. It consists of provisioning multiple virtual machines, associating a public IP, and applying network security rules, all within a defined project network.
+1. **Terraform Project**: Automates the provisioning of cloud infrastructure using CSC's OpenStack `cPouta` service.
+2. **Ansible Project**: Configures and deploys a load balancer and web servers across the provisioned infrastructure.
 
-## Environment Overview
+---
 
-The environment includes:
-1. **Four Virtual Machines (VMs)**:
-   - **VM1**: Connected to the internet with a floating IP.
-   - **VMs 2–4**: Connected to the private network without internet access.
-2. **Security Groups**:
-   - **SSH-HTTP Security Group**: Allows SSH (port 22) and HTTP (port 80) access to VM1 from any IP and unrestricted access from within the project network.
-   - **Private-Only Security Group**: Allows all traffic within the project network for VMs 2–4.
+## **Table of Contents**
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+  - [1. Terraform Setup](#1-terraform-setup)
+  - [2. Ansible Configuration](#2-ansible-configuration)
+- [Expected Results](#expected-results)
+- [Troubleshooting](#troubleshooting)
 
-## Prerequisites
+---
 
-1. **Terraform**: Ensure Terraform is installed on your local machine. ([Download Terraform](https://www.terraform.io/downloads))
-2. **OpenStack CLI**: Access to the OpenStack CLI with credentials to your CSC account.
-3. **OpenStack RC File v3**: Download the RC file from your CSC project and source it to authenticate.
+## **Overview**
 
-## Setup Instructions
+This project demonstrates the complete lifecycle of deploying and configuring a cloud environment:
 
-### 1. Install Terraform
+1. **Provision Infrastructure**: Use Terraform to create a cloud environment with:
+   - A jumphost with public IP (VM1) serving as a load balancer.
+   - Multiple private web servers (VM2, VM3, VM4) connected via a private network.
 
-To install Terraform on Ubuntu:
-```bash
-sudo apt update
-sudo apt install -y unzip
-wget https://releases.hashicorp.com/terraform/<latest_version>/terraform_<latest_version>_linux_amd64.zip
-unzip terraform_<latest_version>_linux_amd64.zip
-sudo mv terraform /usr/local/bin/
+2. **Configure Environment**: Use Ansible to:
+   - Install and configure Nginx on the jumphost as a load balancer.
+   - Install and configure Nginx on web servers to serve static content.
+   - Set up secure and consistent configurations across all VMs.
+
+---
+
+## **Project Structure**
+
+```
+.
+├── README.md             # Main project README
+├── terraform/            # Terraform project for infrastructure provisioning
+│   ├── README.md         # Terraform-specific README
+│   ├── main.tf           # Terraform configuration file
+│   ├── variables.tf      # Input variables for Terraform
+│   └── providers.tf      # OpenStack provider configuration
+└── ansible/              # Ansible project for configuration management
+    ├── README.md         # Ansible-specific README
+    ├── inventory.ini     # Ansible inventory file
+    ├── webservers.yml    # Playbook for load balancer and web servers
+    ├── files/            # Configuration files
+    │   ├── nginx_proxy.conf
+    │   ├── nginx.conf
+
 ```
 
-### 2. Configure OpenStack Provider
+---
 
-- In the `terraform` directory, create a file named `providers.tf` and configure it with OpenStack provider details:
-  
-```hcl
-provider "openstack" {
-  auth_url          = var.OS_AUTH_URL
-  region            = var.OS_REGION_NAME
-  tenant_name       = var.OS_PROJECT_NAME
-  user_domain_name  = var.OS_USER_DOMAIN_NAME
-  user_name         = ""       
-  password          = ""       
-}
-```
+## **Getting Started**
 
-### 3. Create Security Groups
+### **1. Terraform Setup**
 
-Define the required security groups in `main.tf`:
-- **SSH-HTTP Security Group**: Allows inbound SSH and HTTP traffic on VM1.
-- **Private-Only Security Group**: Allows unrestricted traffic within the project network for VMs 2–4.
+#### **Step 1: Install Terraform**
+Follow the instructions in `terraform/README.md` to install and configure Terraform.
 
-### 4. Define Virtual Machines
-
-Specify the VM resources and configurations in `main.tf`:
-- VM1 will have a public IP address and security rules for SSH and HTTP.
-- VMs 2–4 will be connected to the private network only, with unrestricted project network access.
-
-### 5. Apply the Configuration
-
-To deploy the configuration:
-1. **Initialize Terraform** to download the OpenStack provider plugin:
+#### **Step 2: Provision the Infrastructure**
+1. Navigate to the Terraform project directory:
+   ```bash
+   cd terraform/
+   ```
+2. Initialize Terraform:
    ```bash
    terraform init
    ```
-2. **Plan** the configuration to review the resources that will be created:
-   ```bash
-   terraform plan
-   ```
-3. **Apply** the configuration to create the resources:
+3. Plan and apply the configuration:
    ```bash
    terraform apply
    ```
 
-### 6. Generate Graph of Resources
+### **2. Ansible Configuration**
 
-After applying the configuration, generate a graph of the environment’s resources:
+#### **Step 1: Install Ansible**
+Follow the instructions in `ansible/README.md` to install Ansible.
 
-```bash
-terraform graph -type=plan | dot -Tpng > graph.png
-```
+#### **Step 2: Configure Load Balancer and Web Servers**
+1. Navigate to the Ansible project directory:
+   ```bash
+   cd ansible/
+   ```
+2. Test connectivity to all VMs:
+   ```bash
+   ansible -i inventory.ini -m ping all
+   ```
+3. Run the Ansible playbook:
+   ```bash
+   ansible-playbook -i inventory.ini webservers.yml
+   ```
 
-This graph provides a visual representation of the resource dependencies and relationships.
+---
 
-## Commands Summary
+## **Expected Results**
 
-- **Initialize Terraform**:
-  ```bash
-  terraform init
-  ```
-- **Plan the Deployment**:
-  ```bash
-  terraform plan
-  ```
-- **Apply the Configuration**:
-  ```bash
-  terraform apply
-  ```
-- **Destroy Resources** (only if needed):
-  ```bash
-  terraform destroy
-  ```
+- **Jumphost (VM1)**:
+  - Acts as a load balancer using Nginx.
+  - Forwards HTTP traffic to the web servers in a round-robin manner.
 
-# Notes
+- **Web Servers (VM2, VM3, VM4)**:
+  - Serve the same static HTML content.
+  - Are accessible only from the private network.
 
-## Terraform Variables for OpenStack
+You can test the setup by accessing the public IP of the jumphost.
 
-### os_region_name
-Specifies the OpenStack region. Each region may have different availability zones, resources, or configurations. Specifying the region ensures Terraform targets the correct location for deploying resources.
+---
 
-### os_project_name
-Defines the project (or tenant) in OpenStack. Each project usually has its own set of resources, quotas, and permissions. The `project_name` ensures Terraform operates within the correct OpenStack project.
+## **Troubleshooting**
 
-### os_user_domain_name
-Defines the domain used for identity and authentication in OpenStack. Domains organize users and their permissions, supporting multi-tenancy by allowing isolated projects and resources for departments, teams, or clients.
+1. **Terraform Issues**:
+   - Ensure your OpenStack credentials are correctly set in `providers.tf`.
+   - Check for typos in the `variables.tf` file.
 
+2. **Ansible Issues**:
+   - Verify SSH access to all VMs.
+   - Check that `nginx` is running on all servers.
 
-## Key info:
+3. **Network Issues**:
+   - Ensure that security groups allow the necessary traffic:
+     - Port `22` for SSH.
+     - Port `80` for HTTP.
 
-- **Security**: For production use, ensure your SSH keys and credentials are managed securely.
+Refer to the individual README files for more detailed troubleshooting steps.
+
+---
+
+This project provides a modular and automated approach to cloud environment setup and configuration, making it scalable and reusable for various use cases.
