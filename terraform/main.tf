@@ -66,8 +66,9 @@ resource "openstack_compute_floatingip_associate_v2" "fip_vm1_association" {
 # Define VM1 with internet access
 resource "openstack_compute_instance_v2" "vm1" {
   name        = "VM1"
-  image_name  = "Ubuntu-24.04"
+  image_name  = "Ubuntu-22.04"
   flavor_name = "standard.small"
+  key_pair    = "id_rsa" # Specify the key pair name
   # Apply ssh_http_secgroup to VM1, which now includes SSH, HTTP, and project network access rules
   security_groups = [openstack_networking_secgroup_v2.ssh_http_secgroup.name]
 
@@ -80,8 +81,9 @@ resource "openstack_compute_instance_v2" "vm1" {
 resource "openstack_compute_instance_v2" "vms" {
   count       = 3
   name        = "VM${count.index + 2}"
-  image_name  = "Ubuntu-24.04"
+  image_name  = "Ubuntu-22.04"
   flavor_name = "standard.small"
+  key_pair    = "id_rsa" # Specify the key pair name
 
   # Apply private_secgroup to VMs 2-4 to allow internal project network access only
   security_groups = [openstack_networking_secgroup_v2.private_secgroup.name]

@@ -1,0 +1,51 @@
+---
+
+- name: Configure Http load balancer with nginx
+  hosts: csc_proxy
+  become: True
+  tasks:
+    - name: Ensure nginx is installed
+      package: 
+        name: nginx 
+        update_cache: yes
+
+    - name: Copy nginx_proxy.conf config file
+      copy:
+        src: nginx_proxy.conf
+        dest: /etc/nginx/nginx.conf
+
+    - name:  Restart ngnix proxy to apply load balancer configuration
+      service:
+        name: nginx
+        state: restarted
+
+- name: Configure webservers with nginx
+  hosts: csc_vms
+  become: True
+  tasks:
+    - name: Ensure nginx is installed
+      package: 
+        name: nginx 
+        update_cache: yes
+
+    - name: Copy nginx.conf config file
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/sites-available/default
+
+    - name: Enable nginx configuration
+      file: >
+        dest=/etc/nginx/sites-enabled/default
+        src=/etc/nginx/sites-available/default
+        state=link
+
+    - name: Copy index.html
+      template: >
+        src=index.html.j2
+        dest=/usr/share/nginx/html/index.html
+
+    - name: Restart nginx to apply the web server configuration
+      service: 
+        name: nginx
+        state: restarted
+...
